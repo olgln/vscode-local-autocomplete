@@ -79,7 +79,7 @@
         },
         "localAutocomplete.maxPredictMs": {
           "type": "number",
-          "default": 500,
+          "default": 2000,
           "minimum": 0,
           "description": "Generation time limit (ms); the server stops at the next new line once it is exceeded (t_max_predict_ms)."
         },

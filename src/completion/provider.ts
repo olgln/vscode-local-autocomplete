@@ -3,7 +3,7 @@ import { Config, readConfig } from '../config';
 import { InfillResult, isAbortError, requestInfill, ServerUnavailableError } from '../llama/client';
 import { StatusBar } from '../ui/status-bar';
 import { buildContext, CompletionContext } from './context';
-import { postprocess } from './postprocess';
+import { isComplete, postprocess } from './postprocess';
 
 /**
  * VS Code calls provideInlineCompletionItems on every edit/cursor move. Each call gets a
@@ -41,7 +41,9 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 
         const text = await this.complete(ctx, cfg, token, document.languageId);
         if (text === undefined) return undefined;
-        return [new vscode.InlineCompletionItem(text, new vscode.Range(position, position))];
+        // The text replaces the rest of the line, so brackets after the cursor can be merged.
+        const lineEnd = document.lineAt(position.line).range.end;
+        return [new vscode.InlineCompletionItem(text, new vscode.Range(position, lineEnd))];
     }
 
     /** Asks the server and cleans the answer; undefined on cancel, error or nothing useful. */
@@ -56,11 +58,13 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         const finish = this.status.startRequest();
         const started = Date.now();
         try {
-            const result = await requestInfill(cfg.endpoint, ctx.request, cfg.timeoutMs, abort.signal);
+            const result = await requestInfill(cfg.endpoint, ctx.request, cfg.timeoutMs, abort.signal, (text) =>
+                isComplete(text, ctx),
+            );
             this.status.setServer('ready');
             if (token.isCancellationRequested) return undefined;
 
-            const text = postprocess(result.content, ctx);
+            const text = postprocess(result.content, ctx, result.hitLimit);
             this.log.debug(`${languageId} ${Date.now() - started}ms | ${describeTimings(result)} | ${describeText(text)}`);
             return text;
         } catch (error) {
@@ -86,10 +90,12 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
 }
 
 function describeTimings(r: InfillResult): string {
+    // Timings come with the last event, so a stream stopped early has none.
+    if (r.stoppedEarly) return 'stopped at block end';
     const n = (v: number | undefined) => (v === undefined ? '?' : String(Math.round(v)));
     return (
         `prompt ${n(r.promptTokens)} tok ${n(r.promptMs)}ms (cached ${n(r.cachedTokens)}) | ` +
-        `gen ${n(r.predictedTokens)} tok ${n(r.predictedMs)}ms`
+        `gen ${n(r.predictedTokens)} tok ${n(r.predictedMs)}ms${r.hitLimit ? ' (limit)' : ''}`
     );
 }
 
