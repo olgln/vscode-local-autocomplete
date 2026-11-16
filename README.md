@@ -34,11 +34,22 @@ Debug: open this folder in VS Code and press F5 — an "Extension Development Ho
 with the extension loaded. Per-request timings: Output panel → "Local Autocomplete", set the log
 level to Debug.
 
-Server (downloads model weights on first run):
+## Server
+
+Recommended model: Qwen2.5-Coder 1.5B (Q8_0, ~1.6 GB), a FIM-trained code model small enough for
+8 GB machines. The first run downloads the weights to the Hugging Face cache.
 
 ```sh
-llama-server --fim-qwen-1.5b-default   # listens on 127.0.0.1:8012
+llama-server --fim-qwen-1.5b-default -c 8192 --sleep-idle-seconds 600   # listens on 127.0.0.1:8012
 ```
+
+- `--fim-qwen-1.5b-default`: built-in preset (model, port 8012, batch sizes for FIM).
+- `-c 8192`: context size in tokens. The extension sends at most ~320 lines around the cursor;
+  without this flag the server allocates the model's full 32k context (~0.9 GB more KV cache).
+- `--sleep-idle-seconds 600`: after 10 idle minutes the server unloads the model and frees almost all
+  memory. The next completion wakes it (takes a couple of seconds). `GET /health` does not wake it.
+
+More quality, more RAM and latency: `--fim-qwen-3b-default`.
 
 ## Usage
 
