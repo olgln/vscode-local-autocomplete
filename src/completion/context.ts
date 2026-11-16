@@ -18,6 +18,8 @@ export type ContextOptions = Pick<Config, 'prefixLines' | 'suffixLines' | 'maxTo
 
 export interface CompletionContext {
     request: InfillRequest;
+    /** Text before the cursor on the current line. */
+    linePrefix: string;
     /** Text after the cursor on the current line. */
     lineSuffix: string;
     /** Lines after the current one that were sent to the model. */
@@ -52,6 +54,7 @@ export function buildContext(doc: TextSource, cursor: Cursor, opts: ContextOptio
             maxTokens: opts.maxTokens,
             maxPredictMs: opts.maxPredictMs,
         },
+        linePrefix,
         lineSuffix,
         nextLines,
         stripIndent: onlyIndent ? linePrefix.length : 0,

@@ -13,6 +13,8 @@ const request = {
     maxPredictMs: 500,
 };
 
+const sse = (event) => `data: ${JSON.stringify(event)}\n\n`;
+
 /** Starts a server on a random local port; handler(req, body, res). */
 async function withServer(handler, fn) {
     const server = createServer((req, res) => {
@@ -35,14 +37,22 @@ test('sends the FIM request and parses the answer', async () => {
     await withServer(
         (req, body, res) => {
             seen = { method: req.method, url: req.url, body: JSON.parse(body) };
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ content: 'return a + b', tokens_cached: 7, timings: { prompt_n: 3, predicted_n: 5 } }));
+            res.setHeader('Content-Type', 'text/event-stream');
+            // Split an event across writes to check that partial lines are buffered.
+            const events = [
+                { content: 'return' },
+                { content: ' a + b' },
+                { content: '', stop: true, stop_type: 'eos', tokens_cached: 7, timings: { prompt_n: 3, predicted_n: 5 } },
+            ].map(sse).join('');
+            res.write(events.slice(0, 10));
+            res.end(events.slice(10));
         },
         async (endpoint) => {
             const result = await requestInfill(endpoint, request, 2000, new AbortController().signal);
             assert.equal(result.content, 'return a + b');
             assert.equal(result.cachedTokens, 7);
             assert.equal(result.predictedTokens, 5);
+            assert.equal(result.hitLimit, false);
         },
     );
     assert.equal(seen.method, 'POST');
@@ -52,6 +62,33 @@ test('sends the FIM request and parses the answer', async () => {
     assert.equal(seen.body.n_predict, 16);
     assert.equal(seen.body.n_indent, 4);
     assert.equal(seen.body.cache_prompt, true);
+    assert.equal(seen.body.stream, true);
+});
+
+test('stops reading and closes the stream once the text is enough', async () => {
+    let closed;
+    const closedPromise = new Promise((resolve) => (closed = resolve));
+    await withServer(
+        (req, body, res) => {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.write(sse({ content: 'a\n' }));
+            res.write(sse({ content: 'b\n' }));
+            // Keeps "generating" until the client hangs up.
+            const timer = setInterval(() => res.write(sse({ content: 'more\n' })), 10);
+            res.on('close', () => {
+                clearInterval(timer);
+                closed();
+            });
+        },
+        async (endpoint) => {
+            const result = await requestInfill(endpoint, request, 2000, new AbortController().signal, (text) =>
+                text.includes('b\n'),
+            );
+            assert.equal(result.content, 'a\nb\n');
+            assert.equal(result.stoppedEarly, true);
+            await closedPromise;
+        },
+    );
 });
 
 test('reports an unreachable server', async () => {
