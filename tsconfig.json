@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "node16",
+    "moduleResolution": "node16",
+    // DOM lib provides fetch/AbortSignal typings, so we do not need @types/node.
+    "lib": ["ES2022", "DOM"],
+    "types": ["vscode"],
+    "rootDir": "src",
+    "outDir": "out",
+    "strict": true,
+    "sourceMap": true
+  },
+  "include": ["src"]
+}
