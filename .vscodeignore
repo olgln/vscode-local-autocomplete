@@ -1,0 +1,10 @@
+# Files left out of the .vsix package: it needs only package.json, README and out/*.js.
+.vscode/**
+src/**
+test/**
+out/**/*.map
+.gitignore
+.npmrc
+tsconfig.json
+package-lock.json
+CLAUDE.md
