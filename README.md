@@ -1,11 +1,16 @@
 # Local Autocomplete
 
-Tab autocomplete for VS Code backed by a model running on your own machine.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.144-007ACC?logo=visualstudiocode&logoColor=white)
+![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-brightgreen)
+![Runs locally](https://img.shields.io/badge/runs-100%25%20locally-success)
+
+**Tab autocomplete for VS Code, powered by a code model running on your own machine.**
 
 The extension shows inline (ghost-text) completions from a local
 [llama.cpp](https://github.com/ggml-org/llama.cpp) `llama-server` through its fill-in-the-middle
-`/infill` endpoint. Your code never leaves your machine: there is no cloud, no account, no telemetry
-and no runtime dependencies.
+`/infill` endpoint. Your code never leaves your machine: no cloud, no account, no telemetry and no
+runtime dependencies.
 
 ## Features
 
@@ -54,8 +59,8 @@ The extension is not published on the Marketplace. To build it from source you n
 [Node.js](https://nodejs.org/) 22 or newer:
 
 ```sh
-git clone https://github.com/<owner>/vscode-autocomplete-extension.git
-cd vscode-autocomplete-extension
+git clone https://github.com/olgln/vscode-local-autocomplete.git
+cd vscode-local-autocomplete
 npm install
 npm run package          # creates local-autocomplete-0.1.0.vsix, no extra tools needed
 ```
@@ -107,6 +112,24 @@ right of the cursor, and right after a paste or dictation (until you type again)
   large cloud models at long, multi-function suggestions.
 - Only the current file is used as context.
 
+## How it works
+
+```mermaid
+flowchart LR
+    E["VS Code editor"] -- "code around the cursor" --> X["Local Autocomplete"]
+    X -- "POST /infill (streamed)" --> S["llama-server on 127.0.0.1"]
+    S -- "generated tokens" --> X
+    X -- "trimmed ghost text" --> E
+```
+
+1. After a short pause in typing, the extension takes up to 256 lines before and 64 lines after the
+   cursor and sends them to `/infill`. The current line goes into a separate field, so the server
+   reuses its cache for everything above it.
+2. The answer is streamed. As soon as the block under the cursor is complete, the extension closes
+   the stream and the server stops generating.
+3. The text is cleaned up before it is shown: code that repeats what is already below the cursor,
+   unfinished nested blocks and brackets that VS Code has already auto-closed are removed.
+
 ## Development
 
 ```sh
@@ -137,6 +160,12 @@ src/
 test/                     mirrors src/; node --test against the compiled out/
 scripts/package.mjs       builds the .vsix (a zip) without vsce
 ```
+
+## Contributing
+
+Issues and pull requests are welcome. Please run `npm test` before you open a pull request, and
+check completion quality by hand on JavaScript, TypeScript and Python. New runtime dependencies will
+not be accepted: the extension talks only to the local server.
 
 ## Acknowledgements
 
