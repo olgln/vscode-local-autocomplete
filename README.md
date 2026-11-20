@@ -57,12 +57,12 @@ The extension is not published on the Marketplace. To build it from source you n
 git clone https://github.com/<owner>/vscode-autocomplete-extension.git
 cd vscode-autocomplete-extension
 npm install
-npm run compile
-npx @vscode/vsce package          # creates local-autocomplete-0.1.0.vsix
+npm run package          # creates local-autocomplete-0.1.0.vsix, no extra tools needed
 ```
 
 Then, in VS Code, open the Extensions view, click `···`, choose **Install from VSIX…** and pick
-the file you just built.
+the file you just built. To update later, pull the changes, run `npm run package` again and
+install the new file the same way.
 
 To try it without installing, open the folder in VS Code and press `F5`. See
 [Development](#development).
@@ -112,6 +112,7 @@ right of the cursor, and right after a paste or dictation (until you type again)
 ```sh
 npm install   # dev dependencies only: typescript, @types/vscode (pinned; install scripts disabled in .npmrc)
 npm test      # compile + unit tests
+npm run package   # compile + build the .vsix
 ```
 
 Open the folder in VS Code and press `F5`. An Extension Development Host window opens with the
@@ -134,6 +135,7 @@ src/
 └── ui/
     └── status-bar.ts     on/off, server state, spinner; click toggles
 test/                     mirrors src/; node --test against the compiled out/
+scripts/package.mjs       builds the .vsix (a zip) without vsce
 ```
 
 ## Acknowledgements
