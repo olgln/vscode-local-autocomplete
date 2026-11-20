@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { Config, readConfig } from '../config';
 import { InfillResult, isAbortError, requestInfill, ServerUnavailableError } from '../llama/client';
 import { StatusBar } from '../ui/status-bar';
-import { buildContext, CompletionContext } from './context';
+import { buildContext, CompletionContext, isBulkInsert } from './context';
 import { isComplete, postprocess } from './postprocess';
 
 /**
@@ -11,10 +11,18 @@ import { isComplete, postprocess } from './postprocess';
  * request is aborted instead of piling up on the server.
  */
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
+    /** Document version right after a paste/dictation (see isBulkInsert); typing on moves past it. */
+    private readonly bulkInsertVersion = new WeakMap<vscode.TextDocument, number>();
+
     constructor(
         private readonly status: StatusBar,
         private readonly log: vscode.LogOutputChannel,
     ) {}
+
+    /** Feed with workspace.onDidChangeTextDocument. */
+    onDocumentChanged(event: vscode.TextDocumentChangeEvent): void {
+        if (isBulkInsert(event.contentChanges)) this.bulkInsertVersion.set(event.document, event.document.version);
+    }
 
     async provideInlineCompletionItems(
         document: vscode.TextDocument,
@@ -28,6 +36,8 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
         const automatic = context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic;
         // Do not compete with the suggestion list (IntelliSense) while it is open.
         if (automatic && context.selectedCompletionInfo) return undefined;
+        // Right after a paste or dictation: wait until the user types again.
+        if (automatic && this.bulkInsertVersion.get(document) === document.version) return undefined;
 
         const ctx = buildContext(document, position, cfg);
         // In the middle of existing code a completion is rarely useful and often confusing.

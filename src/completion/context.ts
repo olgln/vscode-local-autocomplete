@@ -61,6 +61,27 @@ export function buildContext(doc: TextSource, cursor: Cursor, opts: ContextOptio
     };
 }
 
+/** The slice of vscode.TextDocumentContentChangeEvent this module needs. */
+export interface TextChange {
+    readonly text: string;
+}
+
+/** Inserted text this long (without surrounding whitespace) is not typing. */
+const BULK_INSERT_CHARS = 30;
+
+/**
+ * True when an edit inserted a chunk of text at once: a paste, a dictation app pasting a sentence,
+ * an accepted completion. Not typing: single characters, auto-closed brackets, Enter with its
+ * auto-indent, IntelliSense words. Right after such an edit an automatic completion is rarely
+ * wanted, and skipping it keeps the model idle while e.g. a speech-to-text app is still busy.
+ */
+export function isBulkInsert(changes: readonly TextChange[]): boolean {
+    return changes.some((c) => {
+        const text = c.text.trim();
+        return text.length >= BULK_INSERT_CHARS || (c.text.includes('\n') && text.length >= 3);
+    });
+}
+
 /** Lines [from, to) of the document. */
 function readLines(doc: TextSource, from: number, to: number): string[] {
     const lines: string[] = [];

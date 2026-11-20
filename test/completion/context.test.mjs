@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildContext } from '../../out/completion/context.js';
+import { buildContext, isBulkInsert } from '../../out/completion/context.js';
 
 /** Fake TextDocument from a string. */
 const doc = (text) => {
@@ -40,4 +40,21 @@ test('limits context to prefixLines / suffixLines', () => {
     const ctx = buildContext(d, { line: 3, character: 3 }, { ...opts, prefixLines: 2, suffixLines: 1 });
     assert.equal(ctx.request.inputPrefix, 'b\nc\n');
     assert.deepEqual(ctx.nextLines, ['d']);
+});
+
+test('isBulkInsert: a paste or dictation, not typing', () => {
+    const bulk = (...texts) => isBulkInsert(texts.map((text) => ({ text })));
+    // Typing, auto-closed brackets, Enter with auto-indent, IntelliSense words, multi-cursor typing.
+    assert.equal(bulk('a'), false);
+    assert.equal(bulk('()'), false);
+    assert.equal(bulk('\n    '), false);
+    assert.equal(bulk('\n    \n'), false);
+    assert.equal(bulk('\n * '), false);
+    assert.equal(bulk('addEventListener'), false);
+    assert.equal(bulk('x', 'x', 'x'), false);
+    assert.equal(bulk(''), false); // a deletion
+    // Dictated sentence, pasted lines, an accepted multi-line completion.
+    assert.equal(bulk('Returns the sum of both arguments.'), true);
+    assert.equal(bulk('const a = 1;\nconst b = 2;'), true);
+    assert.equal(bulk('a', ' {\n  return 1;\n}'), true);
 });

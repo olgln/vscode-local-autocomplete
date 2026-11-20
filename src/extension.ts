@@ -11,15 +11,14 @@ export function activate(context: vscode.ExtensionContext): void {
     const log = vscode.window.createOutputChannel('Local Autocomplete', { log: true });
     const status = new StatusBar(Commands.toggle);
     status.setEnabled(readConfig().enabled);
+    const provider = new InlineCompletionProvider(status, log);
 
     context.subscriptions.push(
         log,
         status,
         // Only real files and unsaved editors: not the Output panel, Git input box, settings, etc.
-        vscode.languages.registerInlineCompletionItemProvider(
-            [{ scheme: 'file' }, { scheme: 'untitled' }],
-            new InlineCompletionProvider(status, log),
-        ),
+        vscode.languages.registerInlineCompletionItemProvider([{ scheme: 'file' }, { scheme: 'untitled' }], provider),
+        vscode.workspace.onDidChangeTextDocument((event) => provider.onDocumentChanged(event)),
         ...registerCommands(status, log),
         vscode.workspace.onDidChangeConfiguration((event) => {
             if (!event.affectsConfiguration(SECTION)) return;

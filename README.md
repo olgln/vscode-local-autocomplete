@@ -76,8 +76,8 @@ To try it without installing, open the folder in VS Code and press `F5`. See
   - **Local Autocomplete: Toggle On/Off**
   - **Local Autocomplete: Check Server**
 
-Completions are skipped while the IntelliSense list is open, and when there is already code to the
-right of the cursor.
+Completions are skipped while the IntelliSense list is open, when there is already code to the
+right of the cursor, and right after a paste or dictation (until you type again).
 
 ## Settings
 
