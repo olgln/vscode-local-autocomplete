@@ -1,0 +1,119 @@
+{
+  "name": "local-autocomplete",
+  "displayName": "Local Autocomplete",
+  "description": "Tab autocomplete in VS Code backed by a local llama.cpp server (FIM). No cloud, no telemetry.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/olgln/vscode-local-autocomplete.git"
+  },
+  "bugs": {
+    "url": "https://github.com/olgln/vscode-local-autocomplete/issues"
+  },
+  "homepage": "https://github.com/olgln/vscode-local-autocomplete#readme",
+  "engines": {
+    "vscode": "^1.144.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "localAutocomplete.toggle",
+        "title": "Toggle On/Off",
+        "category": "Local Autocomplete"
+      },
+      {
+        "command": "localAutocomplete.checkServer",
+        "title": "Check Server",
+        "category": "Local Autocomplete"
+      }
+    ],
+    "configuration": {
+      "title": "Local Autocomplete",
+      "properties": {
+        "localAutocomplete.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline completions from the local model."
+        },
+        "localAutocomplete.endpoint": {
+          "type": "string",
+          "default": "http://127.0.0.1:8012",
+          "description": "Base URL of llama-server. The extension sends requests only here."
+        },
+        "localAutocomplete.disabledLanguages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "markdown",
+            "plaintext"
+          ],
+          "description": "Language IDs where completions are turned off."
+        },
+        "localAutocomplete.debounceMs": {
+          "type": "number",
+          "default": 200,
+          "minimum": 0,
+          "description": "Pause in typing (ms) before a request is sent."
+        },
+        "localAutocomplete.prefixLines": {
+          "type": "number",
+          "default": 256,
+          "minimum": 1,
+          "description": "Lines before the cursor sent as context."
+        },
+        "localAutocomplete.suffixLines": {
+          "type": "number",
+          "default": 64,
+          "minimum": 0,
+          "description": "Lines after the cursor sent as context."
+        },
+        "localAutocomplete.maxTokens": {
+          "type": "number",
+          "default": 128,
+          "minimum": 1,
+          "description": "Maximum number of tokens to generate (n_predict)."
+        },
+        "localAutocomplete.maxPredictMs": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 0,
+          "description": "Generation time limit (ms); the server stops at the next new line once it is exceeded (t_max_predict_ms)."
+        },
+        "localAutocomplete.maxLineSuffix": {
+          "type": "number",
+          "default": 8,
+          "minimum": 0,
+          "description": "Skip automatic completion when more than this many non-space characters follow the cursor on the line."
+        },
+        "localAutocomplete.timeoutMs": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 100,
+          "description": "Abort a request that takes longer than this (ms)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npm run compile && node scripts/package.mjs",
+    "test": "npm run compile && node --test \"test/**/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@types/vscode": "1.144.0",
+    "typescript": "6.0.3"
+  }
+}
