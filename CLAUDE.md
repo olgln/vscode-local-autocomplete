@@ -3,6 +3,7 @@
 VS Code extension for local Tab autocomplete (inline completions) backed by llama.cpp
 `llama-server` (`/infill`, FIM). Usage, settings and code layout: `README.md`.
 Build and test: `npm install`, then `npm test` (compiles, runs `node --test`; no model needed).
+Package: `npm run package` → `local-autocomplete-<version>.vsix` (own zip script, no vsce).
 
 ## Rules
 - The repo is public: no personal data or details about the user's machine in any file.
